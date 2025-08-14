@@ -32,18 +32,8 @@ public class SecurityConfig {
         this.jwtAuthFilter = jwtAuthFilter;
     }
 
-//    @Bean
-//    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
-//        AuthenticationManagerBuilder builder =http.getSharedObject(AuthenticationManagerBuilder.class);
-//        builder.userDetailsService(userDetailsService()).passwordEncoder(passwordEncoder());
-//        return builder.build();
-//    }
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
 
-        return authConfig.getAuthenticationManager();
-    }
 
 //    @Bean
 //    public PasswordEncoderImpl passwordEncoder(){
@@ -55,18 +45,12 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-//    @Bean
-//    public DaoAuthenticationProvider authenticationProvider(){
-//        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-//        authProvider.setUserDetailsService(userDetailService);
-//        authProvider.setPasswordEncoder(passwordEncoder());
-//        return authProvider;
-//    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http.csrf(AbstractHttpConfigurer::disable);
+
         http.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -74,29 +58,21 @@ public class SecurityConfig {
         http.authorizeHttpRequests( r -> {
             r.requestMatchers("/public").permitAll();
             r.requestMatchers("/logout").permitAll();
-            r.requestMatchers("/auth/login/***").permitAll();
+            r.requestMatchers("/authenticate").permitAll();
+            r.requestMatchers("/h2-console/**").permitAll();
             r.anyRequest().authenticated();
         } );
 
 //        http.formLogin(Customizer.withDefaults()); PAGINA PRONTA
-//        http.httpBasic(Customizer.withDefaults()); NAO LEMBRO
+        http.httpBasic(Customizer.withDefaults());
 //        http.oauth2Login(Customizer.withDefaults()); GOOGLE
+        http.oauth2ResourceServer( conf -> conf.jwt(Customizer.withDefaults()));
+
+        //config para correto funcionamento do h2-console
+        http.headers(h -> h.frameOptions(f -> f.disable()));
 
         return http.build();
     }
 
-    @Bean
-    public UserDetailsService userDetailsService(){
-        InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
 
-        manager.createUser(User.withUsername("usuario")
-                        .password(passwordEncoder().encode("senha"))
-                        .roles("USER").build());
-
-        manager.createUser(User.withUsername("admin")
-                .password(passwordEncoder().encode("adminadmin"))
-                .roles("ADMIN","USER").build());
-
-        return manager;
-    }
 }
